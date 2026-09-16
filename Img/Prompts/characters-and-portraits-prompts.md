@@ -1,0 +1,53 @@
+# Characters and portraits
+
+Generated with built-in ImageGen. Sprites reference: ../Mockups/Gameplay/gameplay-v3.png. Each portrait references its corresponding generated character sheet. Outputs: ../Assets/Characters/ and ../Assets/Portraits/.
+
+## Frame layout and scope
+
+- Staff sheets: 1 row, 5 poses. First pose idle; next four parcel handoff (clerks) or explanation gestures (mentor).
+- Customer sheets: 4 rows (down, left, right, up), 5 columns (waiting, then four walking phases). No parcel receiving.
+- Blinking and breathing deferred for future code implementation. No dedicated blink sequence generated. Smiling closed eyes in handoff poses express emotion.
+- Portraits: mentor and three customers only, transparent background, no frame or text.
+- These are generated source sheets, not engine-tested animations. Frame spacing, scale and anchors need normalization before import; walking phases need playback verification. Staff and customer proportions differ and need in-scene scale review.
+- Staff bodies render behind the separate counter. If hands or parcel must cross the counter surface, those regions need a foreground layer/mask; a single entire sprite behind the counter will hide low hands/parcels. Parcel is baked into handoff poses 2–4, so do not overlay a duplicate parcel in those frames.
+
+## Characters/postal-clerk-female-sheet.png
+
+Use case: stylized-concept. Production source spritesheet for SQL Post 2D cozy game. Reference image is STYLE only, do not copy UI or room. Warm detailed crisp pixel art matching gameplay character scale and elevated frontal camera. Transparent alpha background, no colored backdrop or glow, no floor or shadows beyond feet, no scenery, no text, no grid lines, no labels. Separate frames with ample transparent padding, uniform invisible cells, consistent scale, identity, outfit and foot anchor. Female postal clerk, same brown hair and blue cap with gold badge as gameplay, white shirt navy vest blue trousers dark shoes. Front facing, stationary feet. EXACTLY FIVE equal cells in one horizontal row: 1 relaxed idle empty hands; 2 lifts small taped parcel at waist; 3 raises parcel to chest smiling; 4 extends parcel forward to customer smiling; 5 arms extended completing handoff empty hands smiling. Same body size and foot baseline each cell. Parcel in frames 2-4 only. Full body each frame. No counter. 
+
+## Characters/postal-clerk-male-sheet.png
+
+Use case: stylized-concept. Production source spritesheet for SQL Post 2D cozy game. Reference image is STYLE only, do not copy UI or room. Warm detailed crisp pixel art matching gameplay character scale and elevated frontal camera. Transparent alpha background, no colored backdrop or glow, no floor or shadows beyond feet, no scenery, no text, no grid lines, no labels. Separate frames with ample transparent padding, uniform invisible cells, consistent scale, identity, outfit and foot anchor. Young adult male postal clerk counterpart to female clerk in gameplay, short chestnut hair, blue cap gold badge, white shirt navy vest blue trousers dark shoes, friendly face. Front facing stationary feet. EXACTLY FIVE equal cells in one horizontal row: 1 relaxed idle empty hands; 2 lifts small taped parcel at waist; 3 raises parcel to chest smiling; 4 extends parcel forward to customer smiling; 5 arms extended completing handoff empty hands smiling. Same body size and foot baseline each cell. Parcel in frames 2-4 only. Full body each frame. No counter.
+
+## Characters/postal-mentor-sheet.png
+
+Use case: stylized-concept. Production source spritesheet for SQL Post 2D cozy game. Reference image is STYLE only, do not copy UI or room. Warm detailed crisp pixel art matching gameplay character scale and elevated frontal camera. Transparent alpha background, no colored backdrop or glow, no floor or shadows beyond feet, no scenery, no text, no grid lines, no labels. Separate frames with ample transparent padding, uniform invisible cells, consistent scale, identity, outfit and foot anchor. Male postal mentor about FORTY years old, brown neatly side-parted hair, NO gray hair NO glasses, clean shaven, kind mature face, white shirt sleeves rolled navy postal vest gold badge navy trousers dark shoes. EXACTLY FIVE equal cells in one horizontal row: 1 front facing relaxed idle; 2 raises right forearm; 3 open palm explaining to viewer; 4 points gently to viewer's right; 5 relaxed open hands finishing explanation. Stationary feet identical placement and body proportions, full body in every cell. No counter.
+
+## Characters/customer-tan-hat-sheet.png
+
+Use case: stylized-concept. Cozy crisp pixel-art 2D game spritesheet. EXACTLY 4 ROWS and 5 COLUMNS, 20 full-body sprites. Row 1 facing DOWN toward viewer, row 2 facing LEFT profile, row 3 facing RIGHT profile, row 4 facing UP back toward viewer. Within EACH row: column 1 stationary waiting pose feet together; columns 2-5 FOUR distinct walk-cycle phases: left foot forward contact, passing feet, right foot forward contact, opposite passing feet. Arms counter-swing, visible alternating legs, backpack follows direction. No parcel, no receiving animation. Uniform invisible cells with generous padding, same scale and ground anchor, no frame overlap. Reference only for character identity/style, no room UI or text. True transparent alpha background, no halos, no floor, no grid lines. Elevated game camera and warm cozy pixel art matching gameplay. Character: Young adult woman matching tan-hat customer and dialogue portrait in gameplay: shoulder length chestnut brown hair, tan brimmed hat burgundy band, olive jacket over dark shirt, blue jeans, brown ankle boots, small brown backpack.
+
+## Characters/customer-redhead-sheet.png
+
+Use case: stylized-concept. Cozy crisp pixel-art 2D game spritesheet. EXACTLY 4 ROWS and 5 COLUMNS, 20 full-body sprites. Row 1 facing DOWN toward viewer, row 2 facing LEFT profile, row 3 facing RIGHT profile, row 4 facing UP back toward viewer. Within EACH row: column 1 stationary waiting pose feet together; columns 2-5 FOUR distinct walk-cycle phases: left foot forward contact, passing feet, right foot forward contact, opposite passing feet. Arms counter-swing, visible alternating legs, backpack follows direction. No parcel, no receiving animation. Uniform invisible cells with generous padding, same scale and ground anchor, no frame overlap. Reference only for character identity/style, no room UI or text. True transparent alpha background, no halos, no floor, no grid lines. Elevated game camera and warm cozy pixel art matching gameplay. Character: Young adult redheaded woman matching redhead waiting in gameplay: shoulder length wavy auburn hair, cyan blue jacket, dark blue jeans, brown shoes, blue backpack.
+
+## Characters/customer-red-beret-sheet.png
+
+Use case: stylized-concept. Cozy crisp pixel-art 2D game spritesheet. EXACTLY 4 ROWS and 5 COLUMNS, 20 full-body sprites. Row 1 facing DOWN toward viewer, row 2 facing LEFT profile, row 3 facing RIGHT profile, row 4 facing UP back toward viewer. Within EACH row: column 1 stationary waiting pose feet together; columns 2-5 FOUR distinct walk-cycle phases: left foot forward contact, passing feet, right foot forward contact, opposite passing feet. Arms counter-swing, visible alternating legs, backpack follows direction. No parcel, no receiving animation. Uniform invisible cells with generous padding, same scale and ground anchor, no frame overlap. Reference only for character identity/style, no room UI or text. True transparent alpha background, no halos, no floor, no grid lines. Elevated game camera and warm cozy pixel art matching gameplay. Character: Young adult male customer matching red-beret customer waiting in gameplay: short dark brown hair, round burgundy red beret, teal shirt, dark navy trousers, brown shoes, green backpack.
+
+## Portraits/postal-mentor-portrait.png
+
+Create ONE large dialogue portrait for a cozy pixel-art game, transparent alpha background, no frame, no text, no UI, no scenery, no glow. Bust portrait from chest up, facing viewer, soft friendly smile, detailed crisp pixel art with warm shading matching reference sprites. Preserve the SAME character identity, hair, outfit and accessories from reference. Centered with padding above head and around shoulders. This will appear beside dialogue text. Mentor, man around 40, brown side-parted hair, mature facial structure and subtle smile lines, no gray hair, no glasses, clean shaven. Navy postal vest, white shirt, gold envelope badge. Calm approachable instructor.
+
+## Portraits/customer-tan-hat-portrait.png
+
+Create ONE large dialogue portrait for a cozy pixel-art game, transparent alpha background, no frame, no text, no UI, no scenery, no glow. Bust portrait from chest up, facing viewer, soft friendly smile, detailed crisp pixel art with warm shading matching reference sprites. Preserve the SAME character identity, hair, outfit and accessories from reference. Centered with padding above head and around shoulders. This will appear beside dialogue text. Young adult woman matching tan-hat customer and dialogue portrait in gameplay: shoulder length chestnut brown hair, tan brimmed hat burgundy band, olive jacket over dark shirt, blue jeans, brown ankle boots, small brown backpack.
+
+## Portraits/customer-redhead-portrait.png
+
+Create ONE large dialogue portrait for a cozy pixel-art game, transparent alpha background, no frame, no text, no UI, no scenery, no glow. Bust portrait from chest up, facing viewer, soft friendly smile, detailed crisp pixel art with warm shading matching reference sprites. Preserve the SAME character identity, hair, outfit and accessories from reference. Centered with padding above head and around shoulders. This will appear beside dialogue text. Young adult redheaded woman matching redhead waiting in gameplay: shoulder length wavy auburn hair, cyan blue jacket, dark blue jeans, brown shoes, blue backpack.
+
+## Portraits/customer-red-beret-portrait.png
+
+Create ONE large dialogue portrait for a cozy pixel-art game, transparent alpha background, no frame, no text, no UI, no scenery, no glow. Bust portrait from chest up, facing viewer, soft friendly smile, detailed crisp pixel art with warm shading matching reference sprites. Preserve the SAME character identity, hair, outfit and accessories from reference. Centered with padding above head and around shoulders. This will appear beside dialogue text. Young adult male customer matching red-beret customer waiting in gameplay: short dark brown hair, round burgundy red beret, teal shirt, dark navy trousers, brown shoes, green backpack.
+
