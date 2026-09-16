@@ -1,6 +1,6 @@
 # SQL Post — browser game
 
-Навчальна browser game про SQL і поштове відділення. Поточна версія: **0.2.0**. Історія змін: [CHANGELOG.md](CHANGELOG.md). Репозиторій для майбутньої публікації: `sql-post-game`.
+Навчальна browser game про SQL і поштове відділення. Поточна версія: **0.2.0**. Історія змін: [CHANGELOG.md](CHANGELOG.md). Repository: [AndlPY/sql-post-game](https://github.com/AndlPY/sql-post-game).
 
 ## Запуск робочої збірки
 
@@ -21,7 +21,7 @@ npm.cmd run preview
 
 Production output: `dist/`. PostgreSQL/PGlite працює локально у Web Worker; account і backend не потрібні. Збереження прив'язане до браузера та адреси сайту. Незавершена зміна після виходу починається спочатку; монети і найкращі зірки залишаються.
 
-Це початкова робоча збірка: покроковий tutorial, level selection і повні анімації ще в роботі. [Перевірки та обмеження](Docs/Design/implementation-status.md). Публічного URL поки немає.
+Це початкова робоча збірка: покроковий tutorial, level selection і повні анімації ще в роботі. [Перевірки та обмеження](Docs/Design/implementation-status.md). Адреса гри на GitHub Pages: [грати в SQL Post](https://andlpy.github.io/sql-post-game/).
 
 ## Карта коду та службових файлів
 
@@ -69,7 +69,7 @@ Production output: `dist/`. PostgreSQL/PGlite працює локально у W
 
 Пропозиція: `0.MINOR.PATCH` до стабільного релізу. Нові механіки/помітні зміни — minor, виправлення — patch. `main` містить перевірену версію для тестерів; зміни готувати у feature branches. Git tag `v0.2.0` позначає конкретний реліз, CHANGELOG описує його. Формат local save має незалежну версію; не міняти storage key при кожному release, інакше зникне видимий прогрес.
 
-Підготовлено workflow, але repository та публічний сайт ще не створені. Після створення repository `sql-post-game`:
+Repository `AndlPY/sql-post-game` створено, GitHub Pages налаштовано на GitHub Actions. Workflow публікує `dist/` після успішних tests і build. Адреса: https://andlpy.github.io/sql-post-game/. Налаштування та перевірка deployment:
 
 1. Завантажити проєкт у GitHub. Для безкоштовного GitHub Pages на GitHub Free потрібен public repository; приватні Docs/чернетки перед публікацією відокремити, якщо вони не призначені для відкритого доступу.
 2. У repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
