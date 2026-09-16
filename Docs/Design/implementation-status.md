@@ -20,7 +20,7 @@
 - Screenshot QA: 1280×720 і 1920×1080, Run унизу, робот поряд із clerk, centered summary. Full HD: editor content близько 188 px заввишки, preview content 252 px.
 - Локальна симуляція Pages: статичний build за `/sql-post-game/`; картинки, Worker/WASM, SELECT із кирилицею працюють, browser error logs порожні. Це не перевірка реального github.io deployment.
 - Зірка: 1254×1254 RGBA, alpha 0–255; скопійована в repository без зміни оригіналу.
-- Remote repository/deploy ще не виконано. `.github/workflows/pages.yml` готовий; потрібне створення repository та увімкнення Pages у GitHub.
+- Public deployment виконано: https://andlpy.github.io/sql-post-game/. GitHub Actions успішно виконав tests, build і deploy. На реальному github.io перевірено cold load, assets, Worker/WASM, SELECT за прізвищем Коваль, правильну доставку, +10 монет і збереження nickname/монет після виходу та reload. Повний прохід і зірки на public hosting окремо не повторювалися.
 
 ## v0.1.0 — історичний звіт
 
@@ -57,7 +57,7 @@
 - UI повторює композицію, але не є pixel-perfect: інші актуальні assets, простіші рамки/шрифти/coin icon. Потрібен окремий візуальний прохід.
 - Фон не спорожнює, видані записи поки залишаються у DB за погодженим scope.
 - Немає звуку, cloud saves, перемішування клієнтів, наступних рівнів.
-- Немає окремої перевірки Chrome/Edge/Firefox, повного performance profiling і публічного deploy.
+- Немає окремої перевірки Chrome/Edge/Firefox і повного performance profiling. Публічний deploy перевірено у v0.2.0, див. QA вище.
 - PGlite дає warnings про eval у dependency під час build; основний JS chunk великий. Це не build errors. Потрібні оптимізація assets та замір cold load перед релізом.
 
 ## Наступна робота
