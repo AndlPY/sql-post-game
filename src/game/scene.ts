@@ -14,8 +14,8 @@ export function asset(path: string) { return images[`../../Img/Assets/${path}`];
 export class PostalScene extends Phaser.Scene {
   private robot!: Phaser.GameObjects.Image;
   private clerk!: Phaser.GameObjects.Image;
-  private customer!: Phaser.GameObjects.Image;
-  private people: Phaser.GameObjects.Image[] = [];
+  private people: Phaser.GameObjects.Sprite[] = [];
+  private readonly places = [{ x: 666, y: 915 }, { x: 490, y: 1080 }, { x: 490, y: 1250 }];
   private readonly home = { x: 670, y: 610 };
   private readyResolve!: () => void;
   readonly ready = new Promise<void>(resolve => { this.readyResolve = resolve; });
@@ -27,6 +27,12 @@ export class PostalScene extends Phaser.Scene {
   create() {
     for (const [path, rectangles] of Object.entries(frames)) {
       rectangles.forEach(([x, y, width, height], i) => this.textures.get(path).add(i, 0, x, y, width, height));
+      if (path.includes('/customer-')) {
+        // Register once; all three pooled sprites share textures and animation definitions.
+        for (const [direction, start] of [['south', 1], ['west', 6], ['east', 11], ['north', 16]] as const) {
+          this.anims.create({ key: `${path}:${direction}`, frames: [0, 1, 2, 3].map(offset => ({ key: path, frame: start + offset })), frameRate: 8, repeat: -1 });
+        }
+      }
     }
     this.add.image(0, 0, 'room').setOrigin(0).setDisplaySize(1310, 1200);
     for (const [name, x] of [['A1', 389], ['A2', 710], ['B1', 1030]] as const) {
@@ -38,11 +44,7 @@ export class PostalScene extends Phaser.Scene {
     this.figure('Props/post-office-clerk-workstation.png', 0, 465, 686, 92).setDisplaySize(165, 92);
     this.figure('Props/post-office-instructor-workstation.png', 0, 892, 686, 100).setDisplaySize(190, 100);
     this.robot = this.figure('Characters/postal-robot-empty-8-directions.png', 0, this.home.x, this.home.y, 140);
-    this.customer = this.figure('Characters/customer-tan-hat-sheet.png', 15, 666, 915, 218);
-    this.people = [
-      this.figure('Characters/customer-redhead-sheet.png', 15, 490, 1080, 190),
-      this.figure('Characters/customer-red-beret-sheet.png', 15, 490, 1220, 178),
-    ];
+    this.people = this.places.map(() => this.add.sprite(490, 1400, 'Characters/customer-tan-hat-sheet.png', 15).setOrigin(.5, 1).setVisible(false));
     this.readyResolve();
   }
   private figure(key: string, frame: number, x: number, y: number, height: number) {
@@ -53,13 +55,58 @@ export class PostalScene extends Phaser.Scene {
     await this.ready;
     this.clerk.setTexture(`Characters/postal-clerk-${gender}-sheet.png`, 0).setScale(205 / this.clerk.height);
   }
-  async setCustomer(customer: Customer, next: Customer[] = []) {
+  private dress(person: Phaser.GameObjects.Sprite, customer: Customer) {
+    const key = `Characters/customer-${customer}-sheet.png` as keyof typeof frames;
+    person.stop().setTexture(key, 15).setVisible(true);
+    // A constant scale across the walk cycle prevents breathing/stretching on each frame.
+    const height = Math.max(...frames[key].map(frame => frame[3]));
+    person.setScale(210 / height);
+  }
+  private async walk(person: Phaser.GameObjects.Sprite, x: number, y: number) {
+    const dx = x - person.x, dy = y - person.y;
+    const direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'east' : 'west') : (dy > 0 ? 'south' : 'north');
+    person.play(`${person.texture.key}:${direction}`);
+    await new Promise<void>(resolve => this.tweens.add({
+      targets: person, x, y, duration: Math.max(180, Math.hypot(dx, dy) / 290 * 1000), ease: 'Linear',
+      onUpdate: () => person.setDepth(1000 + person.y), onComplete: () => resolve(),
+    }));
+    const idle = { south: 0, west: 5, east: 10, north: 15 };
+    person.stop().setFrame(idle[direction]).setDepth(1000 + y);
+  }
+  private async approach(person: Phaser.GameObjects.Sprite) {
+    await this.walk(person, 666, 1080);
+    await this.walk(person, 666, 915);
+  }
+  async startCustomers(customers: Customer[]) {
     await this.ready;
-    this.customer.setTexture(`Characters/customer-${customer}-sheet.png`, 15).setScale(210 / this.customer.height);
     this.people.forEach((person, i) => {
-      person.setVisible(Boolean(next[i]));
-      if (next[i]) person.setTexture(`Characters/customer-${next[i]}-sheet.png`, 15).setScale(185 / person.height);
+      person.stop().setVisible(Boolean(customers[i]));
+      if (customers[i]) this.dress(person, customers[i]);
+      person.setPosition(490, 1470 + i * 170).setDepth(2470 + i * 170);
     });
+    await Promise.all([
+      (async () => { await this.walk(this.people[0], 490, 1080); await this.approach(this.people[0]); })(),
+      ...this.people.slice(1).filter(person => person.visible).map((person, i) => this.walk(person, this.places[i + 1].x, this.places[i + 1].y)),
+    ]);
+  }
+  async advanceCustomers(tail?: Customer) {
+    await this.ready;
+    const [leaving, first, second] = this.people;
+    // Both doors are below the camera. Separate the outgoing and incoming lanes.
+    const exit = (async () => { await this.walk(leaving, 800, 915); await this.walk(leaving, 800, 1470); leaving.setVisible(false); })();
+    const advance = first.visible ? this.approach(first) : Promise.resolve();
+    const follow = second.visible ? this.walk(second, 490, 1080) : Promise.resolve();
+    await Promise.all([exit, advance, follow]);
+    this.people = [first, second, leaving];
+    if (tail) {
+      this.dress(leaving, tail);
+      leaving.setPosition(490, 1470);
+      await this.walk(leaving, 490, 1250);
+    }
+  }
+  async setMenuVisible(visible: boolean) {
+    await this.ready;
+    if (visible) this.scene.pause(); else this.scene.resume();
   }
   private robotPose(key: 'empty' | 'loaded' | 'pickup', frame: number, mirror = false) {
     const path = key === 'pickup' ? 'Characters/postal-robot-pickup-west-sheet.png' : `Characters/postal-robot-${key}-8-directions.png`;

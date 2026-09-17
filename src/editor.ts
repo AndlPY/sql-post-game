@@ -1,16 +1,30 @@
-import { EditorState } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
+import { EditorState, StateEffect, StateField } from '@codemirror/state';
+import { EditorView, keymap, lineNumbers, highlightActiveLine, Decoration, type DecorationSet } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { sql, PostgreSQL } from '@codemirror/lang-sql';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 
+export const highlightSql = StateEffect.define<string>();
+const tutorialHighlight = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    if (transaction.docChanged) value = Decoration.none;
+    for (const effect of transaction.effects) if (effect.is(highlightSql)) {
+      const from = effect.value ? transaction.state.doc.toString().indexOf(effect.value) : -1;
+      value = from < 0 ? Decoration.none : Decoration.set([Decoration.mark({ class: 'sql-tutorial-mark' }).range(from, from + effect.value.length)]);
+    }
+    return value;
+  },
+  provide: field => EditorView.decorations.from(field),
+});
+
 export function mountEditor(parent: HTMLElement, onChange: (sql: string) => void) {
   return new EditorView({ parent, state: EditorState.create({
     doc: 'SELECT * FROM parcels;',
     extensions: [
-      lineNumbers(), history(), highlightActiveLine(), closeBrackets(), keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap]),
+      lineNumbers(), history(), highlightActiveLine(), tutorialHighlight, closeBrackets(), keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap]),
       sql({ dialect: PostgreSQL }), syntaxHighlighting(HighlightStyle.define([
         { tag: tags.keyword, color: '#54bfff' },
         { tag: tags.number, color: '#ffda75' },

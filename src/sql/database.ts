@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { parcels } from '../content.ts';
+import { parcels, type Parcel } from '../content.ts';
 
 export async function createDatabase(options: ConstructorParameters<typeof PGlite>[0] = {}) {
   const db = new PGlite(options);
@@ -9,12 +9,23 @@ export async function createDatabase(options: ConstructorParameters<typeof PGlit
     color text NOT NULL, shelf text NOT NULL, weight_kg numeric NOT NULL
   );`);
   for (const p of parcels) {
-    await db.query('INSERT INTO parcels VALUES ($1,$2,$3,$4,$5,$6)', Object.values(p));
+    await db.query('INSERT INTO parcels (id, first_name, last_name, color, shelf, weight_kg) VALUES ($1,$2,$3,$4,$5,$6)', [p.id, p.first_name, p.last_name, p.color, p.shelf, p.weight_kg]);
   }
   // A restricted role is a second boundary beyond the single-statement query API.
   await db.exec(`CREATE ROLE learner; GRANT USAGE ON SCHEMA public TO learner;
     GRANT SELECT ON parcels TO learner; SET ROLE learner;`);
   return db;
+}
+
+/** Called only by the worker between queries, never through the learner SQL path. */
+export async function replaceCatalog(db: PGlite, rows: readonly Parcel[]) {
+  await db.exec('RESET ROLE');
+  try {
+    await db.transaction(async tx => {
+      await tx.exec('DELETE FROM parcels');
+      for (const p of rows) await tx.query('INSERT INTO parcels (id, first_name, last_name, color, shelf, weight_kg) VALUES ($1,$2,$3,$4,$5,$6)', [p.id, p.first_name, p.last_name, p.color, p.shelf, p.weight_kg]);
+    });
+  } finally { await db.exec('SET ROLE learner'); }
 }
 
 export async function executeSelect(db: PGlite, sql: string) {

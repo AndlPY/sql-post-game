@@ -1,12 +1,15 @@
 import './style.css';
-import { orders, parcels, schema } from './content';
+import { schema } from './content';
+import { createShift, getLevel } from './levels';
 import { mountScene, asset } from './game/scene';
-import { mountEditor } from './editor';
+import { mountEditor, highlightSql } from './editor';
 import { SqlClient, type QueryResult } from './sql/client';
 import { assess, starsFor, customerPayment, shiftSummary } from './game/rules';
-import { loadProfile, saveProfile } from './profile';
+import { loadProfile, saveProfile, levelUnlocked, recordLevel } from './profile';
 import starUrl from '../Img/Assets/UI/reward-star.png?url';
 import packageInfo from '../package.json';
+import { mountMenu } from './menu';
+import { mountTutorial } from './tutorial';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -22,8 +25,8 @@ app.innerHTML = `
       <div class="actions"><p id="status" class="status" role="status">Завантажуємо PostgreSQL…</p><div class="footer-row"><span id="customer-number">Клієнт 1/13</span><button id="mentor" class="small-button">Пояснення наставника</button></div><button id="run" class="run" disabled>Run</button></div>
     </section>
   </main>
-  <dialog id="welcome"><h1>SQL Post</h1><p>Перша зміна на пошті. Знайди посилку через SQL — суперробот привезе її клієнту.</p><form id="profile-form"><label>Твій nickname<input id="nickname" maxlength="24" required autocomplete="nickname" placeholder="Як до тебе звертатися?" /></label><label>Персонаж<select id="gender"><option value="female">Працівниця</option><option value="male">Працівник</option></select></label><p id="best"></p><p>Монети й зірки зберігаються в цьому браузері. Незавершена зміна після виходу починається спочатку.</p><div class="dialog-buttons"><button class="primary" type="submit">Почати зміну</button></div></form></dialog>
-  <dialog id="help"><h2>Колега пояснює</h2><p><b>1. Прочитай замовлення.</b> Клієнт називає номер або прикмету посилки. Список полів таблиці завжди над редактором.</p><p><b>2. Напиши SELECT.</b> <code>SELECT * FROM parcels WHERE id = 1001;</code> вибирає всі поля посилки №1001. Для тексту потрібні одинарні лапки: <code>WHERE last_name = 'Коваль'</code>.</p><p><b>3. Перевір preview.</b> Він автоматично показує результат SQL. Щоб вибрати лише певні поля, напиши <code>SELECT id, shelf FROM parcels WHERE id = 1001;</code>.</p><p><b>4. Натисни Run.</b> Робот піднімає лише одну коробку, тому потрібен один рядок та поле id. 0 або кілька рядків — без штрафу. Неправильна видача зменшує оплату цього клієнта на 5 монет та витрачає одну спробу. Монети на твоєму рахунку залишаються. Після третьої помилки клієнт іде без оплати.</p><p>За 12 обслужених основних клієнтів — 3 зірки. Останній клієнт бонусний.</p><div class="dialog-buttons"><button id="help-close" class="primary">Зрозуміло</button></div></dialog>
+  <dialog id="welcome"><h1>Посвідчення працівника</h1><p>Як тебе записати до команди?</p><form id="profile-form"><label>Твій nickname<input id="nickname" maxlength="24" required autocomplete="nickname" placeholder="Як до тебе звертатися?" /></label><label>Персонаж<select id="gender"><option value="female">Працівниця</option><option value="male">Працівник</option></select></label><div class="dialog-buttons"><button class="primary" type="submit">Зберегти</button><button id="profile-cancel" class="small-button" type="button">Назад</button></div></form></dialog>
+  <dialog id="help"><h2>Пояснення наставника</h2><p>Прочитай замовлення, знайди посилку запитом і перевір preview. Робот перевозить одну коробку: потрібен один рядок із полем <code>id</code>.</p><p><code id="help-example">SELECT id, shelf FROM parcels WHERE id = 1001;</code></p><p id="help-level-syntax"></p><p><b>SELECT</b> — які поля показати; <b>FROM</b> — з якої таблиці; <b>WHERE</b> — умова пошуку. Для тексту потрібні одинарні лапки: <code>WHERE last_name = 'Вчитель'</code>.</p><p>Натисни <b>Run</b>, щоб робот привіз посилку. За помилку клієнт зменшує оплату на 5 монет. Після трьох помилок він іде. За всі 12 основних замовлень — три зірки; тринадцяте замовлення бонусне.</p><div class="dialog-buttons"><button id="help-close" class="primary">Зрозуміло</button><button id="help-tour" class="small-button">Повторити пояснення екрана</button></div></dialog>
   <dialog id="summary"><h2>Зміну завершено!</h2><div id="stars" class="stars" role="img"></div><p id="summary-total"></p><p id="summary-text"></p><p id="summary-coins"></p><p class="summary-note">Зірки оцінюють 12 основних замовлень. Бонусний клієнт приносить додаткові монети.</p><p id="summary-save">Найкращі зірки та монети збережено в цьому браузері.</p><div class="dialog-buttons"><button id="replay" class="primary">Ще одна зміна</button><button id="summary-menu" class="small-button">До меню</button></div></dialog>
   <dialog id="leave"><h2>Завершити зміну?</h2><p>Прогрес цієї зміни не збережеться. Наступного разу почнеш із першого клієнта. Нараховані монети залишаться.</p><div class="dialog-buttons"><button id="stay" class="primary">Продовжити гру</button><button id="confirm-leave" class="small-button">Вийти до меню</button></div></dialog>`;
 
@@ -34,7 +37,22 @@ const profile = loaded.profile;
 if (loaded.warning) warning(loaded.warning);
 const { scene } = mountScene(element('scene'));
 const db = new SqlClient();
+const levelMenu = mountMenu((levelId) => {
+  if (!profile.nickname) { editProfile(); return; }
+  void start(levelId);
+}, editProfile);
+function menuVisibility(visible: boolean) {
+  app.classList.toggle('menu-open', visible);
+  app.querySelectorAll<HTMLElement>('.hud, .layout').forEach(node => { node.inert = visible; });
+}
+function editProfile() {
+  element<HTMLInputElement>('nickname').value = profile.nickname;
+  element<HTMLSelectElement>('gender').value = profile.gender;
+  dialog('welcome').showModal();
+}
 let active = false, busy = false, index = 0, served = 0, attempts = 3, earned = 0, bonus = false;
+let training = false, demoComplete = false;
+let level = getLevel(1), orders = createShift(level);
 let previewVersion = 0, timer: ReturnType<typeof setTimeout>, lastResult: QueryResult | undefined;
 let ready = false;
 const editor = mountEditor(element('editor'), () => {
@@ -43,23 +61,31 @@ const editor = mountEditor(element('editor'), () => {
   element('results').textContent = '';
   timer = setTimeout(() => { void preview(); }, 300);
 });
+const tutorial = mountTutorial({
+  writeSql(sql) { editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: sql } }); },
+  highlight(phrase) { editor.dispatch({ effects: highlightSql.of(phrase) }); },
+  seen() { profile.uiTutorialSeen = true; persist(); },
+  finish() { void beginScoredShift(); },
+});
+function setBusy(value: boolean) { busy = value; tutorial.setBusy(value); updateRun(); }
+const currentOrder = () => training ? level.demo : orders[index];
 
 function warning(text: string) { element('save-warning').hidden = false; element('save-warning').textContent = text; }
 function persist() { const saved = saveProfile(profile); if (!saved) warning('Браузер не дозволяє збереження. Прогрес може зникнути після закриття.'); return saved; }
 function message(text: string, kind = '') { element('status').textContent = text; element('status').dataset.kind = kind; }
-function updateRun() { element<HTMLButtonElement>('run').disabled = !active || busy || !ready || !lastResult; }
+function updateRun() { element<HTMLButtonElement>('run').disabled = !active || busy || !ready || !lastResult || (training && demoComplete); }
 function hud() {
   element('coins').textContent = String(profile.coins); element('served').textContent = String(served + Number(bonus));
   element('main-progress').textContent = `Основні: ${served}/12 · бонус: ${bonus ? '✓' : '—'}`;
-  element('payment').textContent = String(customerPayment(orders[index].reward, 3 - attempts));
+  element('payment').textContent = training ? 'Навчання' : String(customerPayment(currentOrder().reward, 3 - attempts));
   element('progress').style.width = `${served / 12 * 100}%`; element('attempts').textContent = `${attempts}/3`;
-  element('customer-number').textContent = `Клієнт ${index + 1}/13${index === 12 ? ' · бонус' : ''}`;
+  if (training) element('attempts').textContent = '—';
+  element('customer-number').textContent = training ? 'Клієнт 0 · навчальна видача' : `Клієнт ${index + 1}/13${orders[index].cohort === 'bonus' ? ' · бонус' : ''}`;
 }
 function showCustomer() {
-  const order = orders[index];
+  const order = currentOrder();
   element('speech').textContent = order.text;
   element<HTMLImageElement>('portrait').src = asset(`Portraits/customer-${order.customer}-portrait.png`);
-  void scene.setCustomer(order.customer, orders.slice(index + 1, index + 3).map(o => o.customer));
   hud();
 }
 function displayResults(result: QueryResult) {
@@ -78,7 +104,7 @@ async function preview() {
   const sql = editor.state.doc.toString();
   if (!sql.trim()) { element('results').textContent = ''; message('Напиши SELECT, щоб знайти посилку.'); return; }
   try {
-    const result = await db.query(sql);
+    const result = await db.query(sql, level.id);
     if (version !== previewVersion) return;
     lastResult = result; displayResults(result); if (!busy) message('Робот привезе одну вибрану посилку.');
   } catch (error) {
@@ -88,50 +114,72 @@ async function preview() {
   }
   updateRun();
 }
-function start() {
-  active = true; busy = false; index = 0; served = 0; attempts = 3; earned = 0; bonus = false;
+async function start(levelId = level.id) {
+  if (!levelUnlocked(profile, levelId)) return;
+  level = getLevel(levelId); orders = createShift(level);
+  clearTimeout(timer); ++previewVersion; lastResult = undefined;
+  tutorial.hide(); dialog('help').close();
+  document.querySelector('.scene-caption')!.textContent = `SQL POST OFFICE · ${level.title} · v${packageInfo.version}`;
+  element('help-example').textContent = level.demo.solution;
+  element('help-level-syntax').textContent = level.id === 2 ? 'Порівняння: > більше, < менше, <> не дорівнює. Фільтр може знайти кілька посилок: звір одержувача в preview, потім вибери знайдений id для видачі.' : '';
+  setBusy(true);
+  levelMenu.hide(); menuVisibility(false);
+  await scene.setMenuVisible(false);
+  active = true; training = true; demoComplete = false; index = 0; served = 0; attempts = 3; earned = 0; bonus = false;
   void scene.setClerk(profile.gender); showCustomer();
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: 'SELECT * FROM parcels;' } });
-  updateRun();
+  await scene.startCustomers([level.demo.customer, orders[0].customer, orders[1].customer]);
+  tutorial.start(level.id === 1 && !profile.uiTutorialSeen, level); setBusy(false);
+}
+async function beginScoredShift() {
+  if (!active || busy || !training) return;
+  setBusy(true);
+  await scene.advanceCustomers(orders[2].customer);
+  training = false; attempts = 3; showCustomer();
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: 'SELECT * FROM parcels;' } });
+  message('Перший клієнт чекає. Знайди його посилку.'); setBusy(false);
 }
 function menu() {
-  active = false; updateRun();
-  element<HTMLInputElement>('nickname').value = profile.nickname;
-  element<HTMLSelectElement>('gender').value = profile.gender;
-  element('best').textContent = `Перша зміна · найкраще: ${'★'.repeat(profile.stars)}${'☆'.repeat(3-profile.stars)} · монет: ${profile.coins}`;
-  dialog('welcome').showModal();
+  active = false; tutorial.hide(); dialog('help').close(); updateRun(); void scene.setMenuVisible(true);
+  levelMenu.show(profile); menuVisibility(true);
 }
 element('profile-form').addEventListener('submit', e => {
   e.preventDefault();
   const name = element<HTMLInputElement>('nickname').value.trim(); if (!name) return;
-  const isNew = !profile.nickname;
   profile.nickname = name; profile.gender = element<HTMLSelectElement>('gender').value as 'female' | 'male';
-  persist(); dialog('welcome').close(); start(); if (isNew) dialog('help').showModal();
+  persist(); dialog('welcome').close(); menu(); levelMenu.focus();
 });
+element('profile-cancel').onclick = () => dialog('welcome').close();
 element('run').addEventListener('click', async () => {
-  if (!active || busy || !lastResult) return;
-  const result = lastResult; const verdict = assess(result, orders[index]);
+  if (!active || busy || !lastResult || (training && demoComplete)) return;
+  const result = lastResult; const verdict = assess(result, currentOrder());
   if (verdict.kind === 'notice') { message(verdict.message); return; }
-  busy = true; updateRun(); message('Робот виконує доставку…');
-  const parcel = parcels.find(p => p.id === result.rows[0].id);
+  setBusy(true); message('Робот виконує доставку…');
+  const parcel = level.parcels.find(p => p.id === result.rows[0].id);
   try {
     await scene.deliver(parcel?.shelf ?? 'A1', verdict.correct, parcel?.color === 'gold');
+    if (training) {
+      demoComplete = verdict.correct;
+      if (verdict.correct) { message('Дякую, це моя посилка!', 'success'); tutorial.delivered(); }
+      else message('Це не моя коробка. Перечитай замовлення й спробуй ще раз.', 'error');
+      setBusy(false); return;
+    }
     if (verdict.correct) {
       const payment = customerPayment(orders[index].reward, 3 - attempts);
       profile.coins += payment; earned += payment;
-      if (index < 12) served++; else bonus = true;
+      if (orders[index].cohort === 'bonus') bonus = true; else served++;
       message(`Дякую! Правильна видача. +${payment} монет.`, 'success');
     } else {
       attempts--;
       const payment = customerPayment(orders[index].reward, 3 - attempts);
-      message(attempts ? `Це не моя посилка. Оплата тепер ${payment} монет. Баланс не змінено.` : 'Клієнт пішов без оплати. Баланс не змінено.', 'error');
+      message(attempts ? `Це не моя посилка. За мою заплачу ${payment} монет.` : 'Не можу більше чекати. Зайду іншим разом.', 'error');
     }
     persist(); hud();
     if (verdict.correct || attempts === 0) {
-      await new Promise(resolve => setTimeout(resolve, 700));
+      await scene.advanceCustomers(orders[index + 3]?.customer);
       index++;
       if (index === orders.length) {
-        active = false; profile.stars = Math.max(profile.stars, starsFor(served)); profile.completed = profile.completed || served === 12;
+        active = false; recordLevel(profile, level.id, starsFor(served), served === 12);
         const saved = persist();
         const summary = shiftSummary(served, bonus);
         const stars = element('stars'); stars.replaceChildren(); stars.setAttribute('aria-label', `${summary.stars} з 3 зірок`);
@@ -144,17 +192,17 @@ element('run').addEventListener('click', async () => {
       } else { attempts = 3; showCustomer(); message('Нове замовлення. Перевір SQL перед наступною видачею.'); }
     }
   } catch { message('Не вдалося завершити анімацію. Спробу не зараховано.', 'error'); }
-  busy = false; updateRun();
+  setBusy(false);
 });
-element('mentor').onclick = () => dialog('help').showModal();
+element('mentor').onclick = () => { element<HTMLButtonElement>('help-tour').disabled = training; if (!dialog('help').open) dialog('help').show(); };
 element('help-close').onclick = () => dialog('help').close();
+element('help-tour').onclick = () => { dialog('help').close(); if (!training) tutorial.review(); };
 element('exit').onclick = () => { if (busy) return; if (active) dialog('leave').showModal(); else menu(); };
 element('stay').onclick = () => dialog('leave').close();
 element('confirm-leave').onclick = () => { dialog('leave').close(); menu(); };
 element('replay').onclick = () => { dialog('summary').close(); start(); };
 element('summary-menu').onclick = () => { dialog('summary').close(); menu(); };
-dialog('welcome').addEventListener('cancel', e => e.preventDefault());
 dialog('summary').addEventListener('cancel', e => e.preventDefault());
 window.addEventListener('beforeunload', e => { if (active) { e.preventDefault(); e.returnValue = ''; } });
 void db.ready.then(() => { ready = true; void preview(); }).catch(error => message(String(error), 'error'));
-showCustomer(); menu();
+menu();

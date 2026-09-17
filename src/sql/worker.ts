@@ -1,4 +1,5 @@
-import { createDatabase, executeSelect } from './database';
+import { createDatabase, executeSelect, replaceCatalog } from './database';
+import { getLevel } from '../levels';
 import wasmUrl from '../../node_modules/@electric-sql/pglite/dist/pglite.wasm?url';
 import dataUrl from '../../node_modules/@electric-sql/pglite/dist/pglite.data?url';
 import initUrl from '../../node_modules/@electric-sql/pglite/dist/initdb.wasm?url';
@@ -11,10 +12,15 @@ const database = Promise.all([
 
 database.then(() => self.postMessage({ ready: true })).catch(error => self.postMessage({ initError: String(error) }));
 let queue = Promise.resolve();
-self.onmessage = (event: MessageEvent<{ id: number; sql: string }>) => {
-  const { id, sql } = event.data;
+let catalogLevel = 1;
+self.onmessage = (event: MessageEvent<{ id: number; sql: string; levelId?: number }>) => {
+  const { id, sql, levelId = 1 } = event.data;
   queue = queue.then(async () => {
-    try { self.postMessage({ id, result: await executeSelect(await database, sql) }); }
+    try {
+      const db = await database;
+      if (catalogLevel !== levelId) { await replaceCatalog(db, getLevel(levelId).parcels); catalogLevel = levelId; }
+      self.postMessage({ id, result: await executeSelect(db, sql) });
+    }
     catch (error) { self.postMessage({ id, error: error instanceof Error ? error.message : String(error) }); }
   });
 };

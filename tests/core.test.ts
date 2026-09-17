@@ -4,12 +4,17 @@ import { createDatabase, executeSelect } from '../src/sql/database.ts';
 import { orders } from '../src/content.ts';
 import { assess, starsFor, customerPayment, shiftSummary } from '../src/game/rules.ts';
 import { parseProfile } from '../src/profile.ts';
+import { demoOrder, uiSteps, sqlSteps } from '../src/tutorial-content.ts';
 
 test('PostgreSQL: all thirteen reference solutions select the right parcel', async () => {
   const db = await createDatabase();
   try {
     assert.equal(orders.length, 13);
     assert.equal(orders.reduce((sum, o) => sum + o.reward, 0), 190);
+    assert.equal(demoOrder.reward, 0);
+    assert.ok(!orders.some(order => order.parcelId === demoOrder.parcelId));
+    assert.deepEqual(assess(await executeSelect(db, demoOrder.solution), demoOrder), { kind: 'delivery', correct: true });
+    assert.deepEqual(assess(await executeSelect(db, orders[0].solution), demoOrder), { kind: 'delivery', correct: false });
     for (const order of orders) {
       const result = await executeSelect(db, order.solution);
       assert.deepEqual(assess(result, order), { kind: 'delivery', correct: true });
@@ -51,4 +56,14 @@ test('star boundaries and profile validation', () => {
   assert.throws(() => parseProfile(JSON.stringify({ version: 1, nickname: 'test', gender: 'male', coins: -5, stars: 2, completed: false })));
   const valid = { version: 1, nickname: 'Тест', gender: 'female', coins: 40, stars: 2, completed: false };
   assert.deepEqual(parseProfile(JSON.stringify(valid)), valid);
+  assert.equal(parseProfile(JSON.stringify({ ...valid, uiTutorialSeen: true })).uiTutorialSeen, true);
+  assert.throws(() => parseProfile(JSON.stringify({ ...valid, uiTutorialSeen: 'true' })));
+});
+
+test('tutorial sequence teaches the UI before SQL and waits for a real delivery', () => {
+  assert.ok(uiSteps.length > 0);
+  assert.ok(uiSteps.every(step => !step.writeDemo && !step.awaitDelivery));
+  assert.equal(sqlSteps[0].writeDemo, true);
+  assert.equal(sqlSteps.at(-1)?.awaitDelivery, true);
+  for (const step of sqlSteps) if (step.phrase) assert.ok(demoOrder.solution.includes(step.phrase));
 });
