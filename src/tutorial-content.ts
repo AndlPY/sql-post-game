@@ -26,5 +26,6 @@ export const sqlSteps: TutorialStep[] = [
   { title: 'FROM: звідки взяти дані', text: 'FROM parcels означає «з таблиці посилок». SQL читає наш каталог і повертає вибрані колонки.', target: '.editor-panel', gesture: 'point-right', phrase: 'FROM parcels' },
   { title: 'WHERE: яку посилку знайти', text: 'WHERE id = 1001 залишає рядок із потрібним номером. Числа пишемо без лапок, текст — в одинарних: WHERE last_name = \'Вчитель\'.', target: '.editor-panel', gesture: 'raised-finger', phrase: 'WHERE id = 1001' },
   { title: 'Один рядок — одна коробка', text: 'У preview має бути id 1001 та полиця A1. Якщо ти змінив приклад, можеш повернути його кнопкою «Вписати приклад».', target: '.preview', gesture: 'point-right' },
+  { title: 'Кольори коробок', text: 'Клієнт описує колір українською, а в color записані англійські значення: purple — фіолетовий, blue — синій, brown — коричневий. Текстову умову записуємо в одинарних лапках.', target: '.schema', gesture: 'raised-finger' },
   { title: 'Тепер натисни Run', text: 'Відправ робота за посилкою Тараса. Дочекайся доставки. Цей клієнт навчальний: монети, спроби зміни та зірки не змінюються.', target: '#run', gesture: 'point-right', awaitDelivery: true },
 ];

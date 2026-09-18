@@ -4,7 +4,7 @@ import type { Customer } from '../content';
 
 const images = import.meta.glob([
   '../../Img/Assets/Characters/*.png', '../../Img/Assets/Props/*.png',
-  '../../Img/Assets/Portraits/customer-{tan-hat,redhead,red-beret}-portrait.png',
+  '../../Img/Assets/Portraits/customer-{tan-hat,redhead,red-beret,brown-haired-man,glasses-bob}-portrait.png',
   '../../Img/Assets/Environment/post-office-gameplay-room-v2.png',
   '../../Img/Assets/Environment/post-office-service-counter.png',
   '!../../Img/Assets/Characters/customer-olive-jacket-sheet.png',

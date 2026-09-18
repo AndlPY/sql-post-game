@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { parcels, type Parcel } from '../content.ts';
+import { parcels } from '../data/parcels.ts';
 
 export async function createDatabase(options: ConstructorParameters<typeof PGlite>[0] = {}) {
   const db = new PGlite(options);
@@ -15,17 +15,6 @@ export async function createDatabase(options: ConstructorParameters<typeof PGlit
   await db.exec(`CREATE ROLE learner; GRANT USAGE ON SCHEMA public TO learner;
     GRANT SELECT ON parcels TO learner; SET ROLE learner;`);
   return db;
-}
-
-/** Called only by the worker between queries, never through the learner SQL path. */
-export async function replaceCatalog(db: PGlite, rows: readonly Parcel[]) {
-  await db.exec('RESET ROLE');
-  try {
-    await db.transaction(async tx => {
-      await tx.exec('DELETE FROM parcels');
-      for (const p of rows) await tx.query('INSERT INTO parcels (id, first_name, last_name, color, shelf, weight_kg) VALUES ($1,$2,$3,$4,$5,$6)', [p.id, p.first_name, p.last_name, p.color, p.shelf, p.weight_kg]);
-    });
-  } finally { await db.exec('SET ROLE learner'); }
 }
 
 export async function executeSelect(db: PGlite, sql: string) {

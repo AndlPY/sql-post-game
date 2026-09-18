@@ -12,3 +12,8 @@
 - [Портрети v2](portraits-v2-prompts.md) — запасний стиль за [pixel-art reference](../References/portrait-pixel-style.png).
 
 - [Робот і новий клієнт](robot-and-customer-prompts.md) — промпти генерації.
+- [Hi-res дошка меню](level-board-hires.md) — runtime artwork.
+- [Зірка винагороди](reward-star-prompt.md) — runtime UI.
+- [Фон презентації](presentation-background-prompt.md) — reference, не runtime.
+
+Prompt описує намір генерації, а не доводить підключення. Поточні статуси й consumers — у [каталозі assets](../Assets/README.md).

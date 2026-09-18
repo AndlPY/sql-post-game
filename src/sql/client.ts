@@ -23,7 +23,7 @@ export class SqlClient {
     // A later query/UI can observe rejection without an unhandled promise event.
     void this.ready.catch(() => undefined);
   }
-  async query(sql: string, levelId = 1) {
+  async query(sql: string) {
     await this.ready;
     return new Promise<QueryResult>((resolve, reject) => {
       const id = ++this.nextId;
@@ -33,7 +33,7 @@ export class SqlClient {
         this.pending.clear(); this.start();
       }, 4000);
       this.pending.set(id, { resolve, reject, timer });
-      this.worker.postMessage({ id, sql, levelId });
+      this.worker.postMessage({ id, sql });
     });
   }
 }

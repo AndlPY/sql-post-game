@@ -1,5 +1,5 @@
 import './style.css';
-import { schema } from './content';
+import { parcels, schema } from './data/parcels';
 import { createShift, getLevel } from './levels';
 import { mountScene, asset } from './game/scene';
 import { mountEditor, highlightSql } from './editor';
@@ -14,7 +14,7 @@ import { mountTutorial } from './tutorial';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <div id="save-warning" class="notice" role="alert" hidden></div>
-  <header class="hud"><span>Усього обслужено <b id="served">0</b>/13</span><div class="meter" aria-label="Прогрес основних клієнтів"><span id="progress"></span></div><span id="main-progress" class="hud-detail">Основні: 0/12 · бонус: —</span><span class="spacer"></span><button id="exit" class="small-button">Меню</button><span class="coin">◈ <b id="coins">0</b></span></header>
+  <header class="hud"><button id="exit" class="small-button" aria-keyshortcuts="Escape" title="Меню (Esc)">Меню</button><span>Усього обслужено <b id="served">0</b>/13</span><div class="meter" aria-label="Прогрес основних клієнтів"><span id="progress"></span></div><span id="main-progress" class="hud-detail">Основні: 0/12 · бонус: —</span><span class="spacer"></span><span class="coin">◈ <b id="coins">0</b></span></header>
   <main class="layout">
     <section class="warehouse" aria-label="Поштове відділення"><div id="scene"></div><div class="scene-caption">SQL POST OFFICE · Перша зміна · v${packageInfo.version}</div></section>
     <section class="terminal" aria-label="Термінал пошти">
@@ -104,7 +104,7 @@ async function preview() {
   const sql = editor.state.doc.toString();
   if (!sql.trim()) { element('results').textContent = ''; message('Напиши SELECT, щоб знайти посилку.'); return; }
   try {
-    const result = await db.query(sql, level.id);
+    const result = await db.query(sql);
     if (version !== previewVersion) return;
     lastResult = result; displayResults(result); if (!busy) message('Робот привезе одну вибрану посилку.');
   } catch (error) {
@@ -155,7 +155,7 @@ element('run').addEventListener('click', async () => {
   const result = lastResult; const verdict = assess(result, currentOrder());
   if (verdict.kind === 'notice') { message(verdict.message); return; }
   setBusy(true); message('Робот виконує доставку…');
-  const parcel = level.parcels.find(p => p.id === result.rows[0].id);
+  const parcel = parcels.find(p => p.id === result.rows[0].id);
   try {
     await scene.deliver(parcel?.shelf ?? 'A1', verdict.correct, parcel?.color === 'gold');
     if (training) {
@@ -197,7 +197,18 @@ element('run').addEventListener('click', async () => {
 element('mentor').onclick = () => { element<HTMLButtonElement>('help-tour').disabled = training; if (!dialog('help').open) dialog('help').show(); };
 element('help-close').onclick = () => dialog('help').close();
 element('help-tour').onclick = () => { dialog('help').close(); if (!training) tutorial.review(); };
-element('exit').onclick = () => { if (busy) return; if (active) dialog('leave').showModal(); else menu(); };
+function openGameplayMenu() {
+  if (busy || app.classList.contains('menu-open') || app.querySelector('dialog[open]')) return;
+  if (active) dialog('leave').showModal(); else menu();
+}
+element('exit').onclick = openGameplayMenu;
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || event.repeat || app.classList.contains('menu-open')) return;
+  // Open dialogs retain their native Escape/cancel behavior.
+  if (app.querySelector('dialog[open]')) return;
+  event.preventDefault();
+  openGameplayMenu();
+}, true);
 element('stay').onclick = () => dialog('leave').close();
 element('confirm-leave').onclick = () => { dialog('leave').close(); menu(); };
 element('replay').onclick = () => { dialog('summary').close(); start(); };

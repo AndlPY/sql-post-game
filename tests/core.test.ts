@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createDatabase, executeSelect } from '../src/sql/database.ts';
 import { orders } from '../src/content.ts';
+import { parcels } from '../src/data/parcels.ts';
+import { getLevel } from '../src/levels.ts';
 import { assess, starsFor, customerPayment, shiftSummary } from '../src/game/rules.ts';
 import { parseProfile } from '../src/profile.ts';
 import { demoOrder, uiSteps, sqlSteps } from '../src/tutorial-content.ts';
@@ -28,12 +30,30 @@ test('PostgreSQL: all thirteen reference solutions select the right parcel', asy
     for (const query of ['DROP TABLE parcels', 'UPDATE parcels SET id = 7', 'SELECT 1; DROP TABLE parcels;', 'SELECT * INTO copied FROM parcels']) {
       await assert.rejects(() => executeSelect(db, query));
     }
-    assert.equal((await executeSelect(db, 'SELECT * FROM parcels')).rows.length, 14);
+    assert.equal((await executeSelect(db, 'SELECT * FROM parcels')).rows.length, parcels.length);
     assert.equal(assess(await executeSelect(db, 'SELECT * FROM parcels WHERE id = 0'), orders[0]).kind, 'notice');
     assert.equal(assess(await executeSelect(db, 'SELECT * FROM parcels'), orders[0]).kind, 'notice');
     assert.deepEqual(assess(await executeSelect(db, 'SELECT * FROM parcels WHERE id = 1057'), orders[0]), { kind: 'delivery', correct: false });
     await assert.rejects(() => executeSelect(db, 'SELECT invalid_column FROM parcels'));
     assert.equal((await executeSelect(db, 'SELECT id FROM parcels WHERE id = 1042')).rows.length, 1);
+  } finally { await db.close(); }
+});
+
+test('shared warehouse: level-two clues distinguish repeated recipients', async () => {
+  const db = await createDatabase();
+  try {
+    for (const order of getLevel(2).orders) {
+      const target = parcels.find(parcel => parcel.id === order.parcelId)!;
+      const found = await executeSelect(db, order.search!);
+      assert.ok(found.rows.some(row => row.id === target.id));
+      if (order.cohort === 'easy' || order.cohort === 'medium') {
+        assert.ok(parcels.filter(parcel => parcel.last_name === target.last_name).length > 1);
+        assert.deepEqual(found.rows.filter(row => row.last_name === target.last_name).map(row => row.id), [target.id]);
+      } else {
+        assert.deepEqual(found.rows.map(row => row.id), [target.id]);
+      }
+      assert.deepEqual(assess(await executeSelect(db, order.solution), order), { kind: 'delivery', correct: true });
+    }
   } finally { await db.close(); }
 });
 

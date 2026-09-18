@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Gameplay menu moved to the upper left with Escape access; five customers and matching portraits enabled. Customer frame bounds now follow each sheet’s transparent gutters.
+- One shared 36-parcel warehouse for both levels; repeated recipients make comparison clues useful. Removed automatic full-name hints and database instructions from dialogue; documented common authoring rules.
+
+- Added a short AGENTS.md workflow, task-to-source/update index and compact handoff; documented cross-category update checks, feedback handling and context size limits. Archived historical reports without dropping open work.
+- Consolidated current decisions and one backlog queue, made superseded decisions explicit, and documented asset consumers/status/provenance.
+
 ## 0.3.0 — 2026-09-17
 
 - Data-driven level definitions, level-two WHERE introduction and separate unpaid customer zero; per-level catalogs and saved stars, backward-compatible level-one progress.

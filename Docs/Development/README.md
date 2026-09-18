@@ -1,26 +1,38 @@
 # Versioning і GitHub Pages
 
-[Головна](../../README.md)
+`../README.md` (локально) · `../Design/implementation-status.md` (локально) · `../../AGENTS.md` (локально)
 
-Пропозиція: `0.MINOR.PATCH` до стабільного релізу. Нові механіки/помітні зміни — minor, виправлення — patch. `main` містить перевірену версію для тестерів; зміни готувати у feature branches. Git tag `v0.2.0` позначає конкретний реліз, CHANGELOG описує його. Формат local save має незалежну версію; не міняти storage key при кожному release, інакше зникне видимий прогрес.
+## Межі роботи
 
-Repository `AndlPY/sql-post-game` створено, GitHub Pages налаштовано на GitHub Actions. Workflow публікує `dist/` після успішних tests і build. Адреса: https://andlpy.github.io/sql-post-game/. Налаштування та перевірка deployment:
+Tests/build/typecheck, запуск гри та Computer Use виконує користувач, якщо не доручить інакше. Наведені нижче команди — для користувача. Агент може читати workflow/config, готувати документацію й зміни; commit/push/deploy потребують прямого доручення. Push у main запускає CI tests/build/deploy.
 
-1. Завантажити проєкт у GitHub. Для безкоштовного GitHub Pages на GitHub Free потрібен public repository; приватні Docs/чернетки перед публікацією відокремити, якщо вони не призначені для відкритого доступу.
-2. У repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. Push у `main` запускає `.github/workflows/pages.yml`. Після успішного workflow сайт буде за `https://<github-login>.github.io/sql-post-game/`.
-4. Дати тестерам посилання. Просити разом із bug report вказувати версію внизу сцени, browser, очікувану/фактичну поведінку та SQL.
-5. Перевірити публічний URL: cold load, Worker/WASM, SELECT із кирилицею, local save, reload, зірки. Успішний локальний build не замінює перевірку hosting.
+## Версія та перевірка
 
-GitHub Pages достатньо для поточного MVP: backend немає, PGlite працює локально. Сайт відкривається всім, але прогрес кожного залишається лише в його браузері. Прогрес із localhost автоматично не переноситься на github.io. Інші repository на тому самому `github-login.github.io` поділяють origin, тому storage key має префікс `sql-post`.
+- Схема до стабільного релізу: 0.MINOR.PATCH; нові механіки/помітні зміни — minor, виправлення — patch. Версія коду — package.json, точні dependencies — package-lock.json, помітні зміни — CHANGELOG.
+- При release синхронізувати package/lock, README і CHANGELOG. Handoff фіксує перевірений стан, pending QA та результат публікації; не вести другий release-status тут.
+- Storage format має незалежну версію: не міняти ключ sql-post.profile.v1 через release. Прогрес прив'язаний до browser/origin; localhost не переноситься на github.io.
+- main призначений для перевіреної версії, зміни готувати у feature branch (codex/ за замовчуванням). Tag vX.Y.Z позначає конкретний release; не заявляти, що tag існує, без перевірки.
 
-Для наступного релізу після перевірки змін:
+## Процедура release
+
+1. Отримати результат перевірок користувача й уточнити невирішені bugs у backlog. Старий QA не покриває нові зміни.
+2. Оновити версію (якщо доручено release), README/CHANGELOG/lock. Користувач виконує tests/build та playtest.
+3. За прямим дорученням зробити commit/tag/push. Workflow [pages.yml](../../.github/workflows/pages.yml): Node 24 → npm ci → npm test → npm run build → upload dist → Pages.
+4. Перевірити фактичний результат GitHub Actions; зафіксувати commit/run URL та outcome в handoff. До отримання доказу писати «deployment не підтверджено».
+5. Public smoke test виконує користувач: cold load, assets/Worker/WASM, SELECT із кирилицею, доставка, save/reload, зірки. Локальний build не доводить працездатність hosting.
+
+Приклад команд користувача (тільки для дорученого patch release):
 
 ```powershell
 npm.cmd version patch --no-git-tag-version
 npm.cmd test
 npm.cmd run build
-# Оновити CHANGELOG, зробити commit, tag і push у власний repository.
 ```
 
-Збереження між пристроями, accounts та приватний прогрес у cloud — майбутній backend; сам Pages цього не додає. [Vite deployment](https://vite.dev/guide/static-deploy#github-pages), [GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+## Hosting
+
+Repository: [AndlPY/sql-post-game](https://github.com/AndlPY/sql-post-game). Адреса: [SQL Post](https://andlpy.github.io/sql-post-game/). Наявна конфігурація — GitHub Actions, output dist; поточний deployment визначається за CI, а не за цим текстом.
+
+Для відновлення налаштування: Settings → Pages → Build and deployment → Source: GitHub Actions. Backend/accounts/cloud save поточний статичний проєкт не має. Для bug report потрібні версія UI, browser, SQL, очікувана й фактична поведінка.
+
+Довідкові посилання, читати лише за потреби hosting: [Vite](https://vite.dev/guide/static-deploy#github-pages), [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
